@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mr Ennis Clicker 2.0</title>
+<style>
+:root {
+  --bg: #25213d;
+  --panel: #39325c;
+  --panel-dark: #292443;
+  --gold: #ffd76b;
+  --gold-hot: #ffb832;
+  --text: #ffffff;
+  --muted: #d8d2ee;
+  --green: #aaffaa;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 16px;
+  background: radial-gradient(circle at top, #413762 0%, var(--bg) 58%);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+}
+.game {
+  max-width: 760px;
+  margin: 10px auto 30px;
+  padding: clamp(16px, 4vw, 28px);
+  background: var(--panel);
+  border: 1px solid #514a70;
+  border-radius: 26px;
+  box-shadow: 0 18px 50px #100d21aa;
+}
+h1 {
+  margin: 5px 0 8px;
+  color: var(--gold);
+  font-size: clamp(27px, 6vw, 39px);
+  text-shadow: 0 3px 0 #9c6a21;
+}
+.subtitle { color: var(--muted); margin-top: 0; }
+.score-card {
+  margin: 18px auto 10px;
+  padding: 14px;
+  background: var(--panel-dark);
+  border-radius: 18px;
+}
+#count {
+  color: var(--gold);
+  font-weight: 800;
+  font-size: clamp(29px, 7vw, 42px);
+  font-variant-numeric: tabular-nums;
+}
+#cps { color: var(--muted); margin: 7px 0 0; }
+.prestige-line { color: #e5c9ff; font-size: 13px; margin-top: 7px; }
+.click-wrap { position: relative; width: min(290px, 76vw); margin: 18px auto 8px; }
+#clicker {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 290px;
+  padding: 0;
+  overflow: hidden;
+  border: 6px solid var(--gold);
+  border-radius: 25px;
+  background: #171429;
+  cursor: pointer;
+  box-shadow: 0 8px 0 #9c6a21, 0 0 20px #ffd76b33;
+  transition: transform .09s ease, box-shadow .15s ease, border-color .15s ease;
+}
+#clicker:active { transform: scale(.94); box-shadow: 0 3px 0 #9c6a21; }
+#clicker img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 34%;
+  transition: filter .2s ease;
+}
+#clicker.golden {
+  border-color: #fff2a0;
+  box-shadow: 0 8px 0 #b47d19, 0 0 34px 12px #ffd700aa;
+  animation: goldPulse .8s ease-in-out infinite alternate;
+}
+#clicker.golden img { filter: sepia(1) saturate(2.5) hue-rotate(350deg) brightness(1.18); }
+@keyframes goldPulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.025); }
+}
+.golden-label {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: -13px;
+  transform: translateX(-50%);
+  padding: 7px 13px;
+  white-space: nowrap;
+  border-radius: 20px;
+  background: #fff0a0;
+  color: #533500;
+  font-weight: 900;
+  box-shadow: 0 3px 10px #100d2188;
+  z-index: 3;
+}
+.golden-label.show { display: block; }
+#floatLayer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 4;
+}
+.float-points {
+  position: absolute;
+  font-weight: 900;
+  font-size: 22px;
+  color: #fff2a0;
+  text-shadow: 0 2px 5px #21172b;
+  animation: floatUp .9s ease-out forwards;
+  white-space: nowrap;
+}
+@keyframes floatUp {
+  from { opacity: 1; transform: translate(-50%, 0) scale(.8); }
+  to { opacity: 0; transform: translate(-50%, -95px) scale(1.25); }
+}
+.click-hint { font-weight: bold; letter-spacing: 1px; margin: 15px 0 20px; }
+.event-banner {
+  display: none;
+  margin: 12px auto;
+  padding: 12px 14px;
+  max-width: 520px;
+  color: #382500;
+  background: linear-gradient(90deg, #ffe98b, #ffc84c);
+  border: 2px solid #fff2ae;
+  border-radius: 14px;
+  font-weight: 900;
+  box-shadow: 0 0 18px #ffd76b66;
+}
+.event-banner.show { display: block; }
+.event-sub { display: block; font-size: 13px; font-weight: 600; margin-top: 3px; }
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 22px 0 14px;
+}
+.tab-button {
+  padding: 13px 8px;
+  border: 1px solid #777095;
+  border-radius: 12px;
+  color: white;
+  background: #2b2646;
+  font-weight: 800;
+  cursor: pointer;
+}
+.tab-button.active { color: #29213b; background: var(--gold); border-color: var(--gold); }
+.tab-panel { display: none; text-align: left; }
+.tab-panel.active { display: block; }
+.section-title { text-align: center; color: var(--gold); margin: 16px 0; }
+.shop-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.upgrade {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #716990;
+  border-radius: 14px;
+  background: #2c2749;
+  color: white;
+  text-align: left;
+}
+.upgrade-top { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+.upgrade-name { color: var(--gold); font-size: 16px; font-weight: 900; }
+.upgrade-desc { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.upgrade-stats { color: #eee9ff; font-size: 13px; margin-top: 9px; }
+.buy-button {
+  display: block;
+  width: 100%;
+  margin-top: 11px;
+  padding: 11px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--gold);
+  color: #29213b;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.buy-button:disabled { opacity: .42; cursor: not-allowed; }
+.locked-secret {
+  padding: 14px;
+  background: #211d38;
+  border: 1px dashed #8980aa;
+  border-radius: 14px;
+  color: var(--muted);
+}
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 9px;
+}
+.achievement {
+  min-height: 102px;
+  padding: 12px;
+  border-radius: 13px;
+  background: #2b2646;
+  border: 1px solid #5d557d;
+  opacity: .48;
+}
+.achievement.unlocked {
+  opacity: 1;
+  border-color: var(--gold);
+  background: linear-gradient(145deg, #51452e, #2b2646 75%);
+}
+.achievement-icon { font-size: 26px; }
+.achievement-name { font-weight: 900; color: var(--gold); margin: 5px 0 3px; }
+.achievement-desc { color: var(--muted); font-size: 12px; }
+.achievement-status { color: var(--green); font-size: 11px; font-weight: bold; margin-top: 7px; }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 10px;
+}
+.stat {
+  padding: 15px 10px;
+  border-radius: 13px;
+  background: #2b2646;
+  border: 1px solid #5d557d;
+}
+.stat-label { color: var(--muted); font-size: 12px; }
+.stat-value { color: var(--gold); font-size: 22px; font-weight: 900; margin-top: 6px; overflow-wrap: anywhere; }
+.rebirth-card {
+  margin-top: 22px;
+  padding: 17px;
+  border: 2px solid #c99bff;
+  border-radius: 17px;
+  background: linear-gradient(145deg, #4b386b, #2b2646);
+  text-align: center;
+}
+.rebirth-card h2 { color: #e4caff; margin: 0 0 8px; }
+.rebirth-card p { color: #eee3ff; font-size: 13px; }
+.rebirth-button {
+  width: 100%;
+  padding: 13px;
+  border: 0;
+  border-radius: 11px;
+  background: #d6b0ff;
+  color: #29183e;
+  font-weight: 900;
+  cursor: pointer;
+}
+.rebirth-button:disabled { opacity: .4; cursor: not-allowed; }
+.message { color: var(--green); min-height: 22px; text-align: center; margin: 13px 0 3px; }
+.reset-button {
+  margin-top: 18px;
+  padding: 10px 16px;
+  border: 1px solid #8b83a6;
+  border-radius: 10px;
+  background: transparent;
+  color: #d8d2ee;
+  cursor: pointer;
+}
+.small-note { color: #bdb5d8; font-size: 11px; text-align: center; margin-top: 14px; }
+@media (min-width: 620px) {
+  .shop-grid { grid-template-columns: 1fr 1fr; }
+  .upgrade { min-height: 155px; }
+}
+</style>
+</head>
+<body>
+<div class="game">
+  <h1>📚 MR ENNIS CLICKER 2.0 📚</h1>
+  <p class="subtitle">Welcome to Mr Ennis's classroom. Behave yourselves.</p>
+
+  <div class="score-card">
+    <div id="count">0 Ennis Points</div>
+    <p id="cps">0 points per second</p>
+    <p id="clickPower">1 point per click</p>
+    <div class="prestige-line" id="prestigeLine">Permanent multiplier: x1.00</div>
+  </div>
+
+  <div id="eventBanner" class="event-banner" role="status">
+    ✨ DOUBLE POINTS! ✨
+    <span class="event-sub" id="eventCountdown">30 seconds remaining</span>
+  </div>
+
+  <div class="click-wrap">
+    <div id="goldenLabel" class="golden-label">✨ GOLDEN MR ENNIS — +50 BONUS! ✨</div>
+    <button id="clicker" type="button" onclick="clickEnnis(event)" aria-label="Click Mr Ennis">
+      <img alt="Mr Ennis" src="data:image/jpeg;base64,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">
+      <span id="floatLayer"></span>
+    </button>
+  </div>
+  <p class="click-hint" id="clickHint">CLICK MR ENNIS!</p>
+
+  <nav class="tabs" aria-label="Game sections">
+    <button class="tab-button active" type="button" data-tab="shopPanel" onclick="showTab('shopPanel', this)">🛒 Shop</button>
+    <button class="tab-button" type="button" data-tab="achievementsPanel" onclick="showTab('achievementsPanel', this)">🏅 Achievements</button>
+    <button class="tab-button" type="button" data-tab="statsPanel" onclick="showTab('statsPanel', this)">📊 Statistics</button>
+    <button class="tab-button" type="button" data-tab="leaderboardPanel" onclick="showTab('leaderboardPanel', this)">🏆 Global</button>
+  </nav>
+
+  <section id="shopPanel" class="tab-panel active">
+    <h2 class="section-title">🛒 CLASSROOM SHOP</h2>
+    <div id="shop" class="shop-grid"></div>
+    <div id="secretUnlockNotice"></div>
+  </section>
+
+  <section id="achievementsPanel" class="tab-panel">
+    <h2 class="section-title">🏅 CLASSROOM ACHIEVEMENTS</h2>
+    <p class="small-note" id="achievementCount"></p>
+    <div id="achievementGrid" class="achievement-grid"></div>
+  </section>
+
+  <section id="statsPanel" class="tab-panel">
+    <h2 class="section-title">📊 YOUR CLASSROOM STATISTICS</h2>
+    <div id="statsGrid" class="stats-grid"></div>
+  </section>
+
+  <section id="leaderboardPanel" class="tab-panel">
+    <h2 class="section-title">🏆 GLOBAL LEADERBOARD</h2>
+    <p class="small-note">Top 10 scores from everyone who has submitted through GitHub.</p>
+    <button class="buy-button" type="button" onclick="loadLeaderboard()">🔄 Refresh leaderboard</button>
+    <div id="leaderboardStatus" class="message" role="status">Loading global scores...</div>
+    <div id="leaderboardList" class="shop-grid"></div>
+    <a id="submitScoreLink" class="buy-button" href="https://github.com/robertojohnstoneo1/mr-ennis-leaderboard/issues/new" target="_blank" rel="noopener noreferrer">🚀 Submit my score on GitHub</a>
+    <p class="small-note">Submitting opens GitHub. Sign in, then click “Create issue” to send your score. Your GitHub username appears on the board. Scores are not automatically verified against gameplay.</p>
+  </section>
+
+  <section class="rebirth-card">
+    <h2>🌟 REBIRTH</h2>
+    <p id="rebirthInfo">Reach 100,000 Ennis Points to restart with a permanent +25% points multiplier.</p>
+    <button id="rebirthButton" class="rebirth-button" type="button" onclick="rebirth()" disabled>
+      REBIRTH — NEED 100,000 POINTS
+    </button>
+  </section>
+
+  <p id="message" class="message" role="status"></p>
+  <button class="reset-button" type="button" onclick="resetGame()">Reset all game progress</button>
+  <p class="small-note">Your game progress saves on this device. Global leaderboard submissions use GitHub. No sound effects.</p>
+</div>
+
+<script>
+"use strict";
+
+const SAVE_KEY = "mrEnnisClicker2Save";
+const REBIRTH_COST = 100000;
+const GOLDEN_BONUS = 50;
+const LEADERBOARD_URL = "https://raw.githubusercontent.com/robertojohnstoneo1/mr-ennis-leaderboard/main/leaderboard.json";
+const GITHUB_ISSUE_URL = "https://github.com/robertojohnstoneo1/mr-ennis-leaderboard/issues/new";
+
+const upgradeCatalog = [
+  { id: "one", name: "That's the one. 🗣️", desc: "A classic classroom moment.", baseCost: 25, cps: 1, clickPower: 1 },
+  { id: "chromebook", name: "Get out your Chromebook. 💻", desc: "The lesson is about to begin.", baseCost: 100, cps: 5, clickPower: 2 },
+  { id: "morally", name: "That is morally unacceptable. 😭", desc: "A serious announcement.", baseCost: 500, cps: 25, clickPower: 3 },
+  { id: "sitdown", name: "Sit back down! 🪑", desc: "The class is getting out of hand.", baseCost: 1500, cps: 75, clickPower: 5 },
+  { id: "talking", name: "Stop your talking! 🤫", desc: "Silence is golden. Mostly.", baseCost: 5000, cps: 250, clickPower: 10 },
+  { id: "readyroom", name: "The Ready Room. 🚪", desc: "A mysterious place with serious productivity.", baseCost: 20000, cps: 1000, clickPower: 25 },
+  { id: "davidson", name: "Mr Davidsons Office. 🏫", desc: "The ultimate classroom authority.", baseCost: 100000, cps: 5500, clickPower: 50 },
+  { id: "secretmeeting", name: "The Secret Staff Meeting. 🤫", desc: "A meeting that generates a LOT of points.", baseCost: 300000, cps: 18000, clickPower: 100, secret: true, unlockAt: 250000 },
+  { id: "goldenplanner", name: "The Golden Planner. 📒", desc: "The most powerful planner in the school.", baseCost: 1500000, cps: 100000, clickPower: 250, secret: true, unlockAt: 1000000 }
+];
+
+const achievements = [
+  { id: "firstClick", icon: "👆", name: "First Lesson", desc: "Click Mr Ennis for the first time.", test: s => s.totalClicks >= 1 },
+  { id: "hundredClicks", icon: "💯", name: "Busy Hands", desc: "Click Mr Ennis 100 times.", test: s => s.totalClicks >= 100 },
+  { id: "thousandClicks", icon: "🖱️", name: "Clicking Machine", desc: "Click Mr Ennis 1,000 times.", test: s => s.totalClicks >= 1000 },
+  { id: "points10k", icon: "⭐", name: "Big Score", desc: "Earn 10,000 points in total.", test: s => s.lifetimePoints >= 10000 },
+  { id: "points100k", icon: "🏆", name: "The Headteacher", desc: "Earn 100,000 points in total.", test: s => s.lifetimePoints >= 100000 },
+  { id: "goldenClick", icon: "✨", name: "Gold Rush", desc: "Click Golden Mr Ennis.", test: s => s.goldenClicks >= 1 },
+  { id: "doubleEvent", icon: "⚡", name: "Double Trouble", desc: "Experience a double-points event.", test: s => s.eventsSeen >= 1 },
+  { id: "upgradeCollector", icon: "🛒", name: "Shopaholic", desc: "Own 10 classroom upgrades in total.", test: s => totalOwned(s) >= 10 },
+  { id: "secretFound", icon: "🕵️", name: "What's This Then?", desc: "Unlock your first secret upgrade.", test: s => s.lifetimePoints >= 250000 },
+  { id: "rebirthOne", icon: "🌟", name: "Fresh Start", desc: "Complete your first rebirth.", test: s => s.rebirths >= 1 },
+  { id: "rebirthFive", icon: "🌌", name: "Back for More", desc: "Complete five rebirths.", test: s => s.rebirths >= 5 },
+  { id: "allUpgrades", icon: "🎓", name: "Whole School", desc: "Own at least one of every upgrade, including secrets.", test: s => upgradeCatalog.every(u => (s.owned[u.id] || 0) >= 1) }
+];
+
+function freshState() {
+  const owned = {};
+  upgradeCatalog.forEach(u => owned[u.id] = 0);
+  return {
+    points: 0,
+    lifetimePoints: 0,
+    totalClicks: 0,
+    playtimeSeconds: 0,
+    goldenClicks: 0,
+    eventsSeen: 0,
+    rebirths: 0,
+    owned,
+    unlockedAchievements: [],
+    doubleEventEndsAt: 0
+  };
+}
+
+function loadState() {
+  const fresh = freshState();
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return fresh;
+    const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== "object") return fresh;
+
+    for (const key of ["points", "lifetimePoints", "totalClicks", "playtimeSeconds", "goldenClicks", "eventsSeen", "rebirths"]) {
+      const value = Number(saved[key]);
+      fresh[key] = Number.isFinite(value) && value >= 0 ? value : 0;
+    }
+    if (saved.owned && typeof saved.owned === "object") {
+      upgradeCatalog.forEach(u => {
+        const value = Number(saved.owned[u.id]);
+        fresh.owned[u.id] = Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0;
+      });
+    }
+    if (Array.isArray(saved.unlockedAchievements)) {
+      fresh.unlockedAchievements = saved.unlockedAchievements.filter(id => achievements.some(a => a.id === id));
+    }
+    return fresh;
+  } catch (error) {
+    return fresh;
+  }
+}
+
+let state = loadState();
+let goldenActive = false;
+let doubleActive = false;
+let doubleSeconds = 0;
+let goldenTimeout = null;
+let eventTimeout = null;
+let eventTick = null;
+let lastMessage = "";
+
+function saveGame() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  } catch (error) {
+    // The game remains playable if local storage is disabled in an embedded preview.
+  }
+}
+
+function totalOwned(s = state) {
+  return upgradeCatalog.reduce((sum, u) => sum + (s.owned[u.id] || 0), 0);
+}
+
+function getPrestigeMultiplier() {
+  return 1 + state.rebirths * 0.25;
+}
+
+function getBaseCPS() {
+  return upgradeCatalog.reduce((sum, u) => sum + u.cps * (state.owned[u.id] || 0), 0);
+}
+
+function getEffectiveCPS() {
+  return getBaseCPS() * getPrestigeMultiplier() * (doubleActive ? 2 : 1);
+}
+
+function getBaseClickPower() {
+  return 1 + upgradeCatalog.reduce((sum, u) =>
+    sum + (u.clickPower || 0) * (state.owned[u.id] || 0), 0);
+}
+
+function getEffectiveClickPower() {
+  return getBaseClickPower() * getPrestigeMultiplier() * (doubleActive ? 2 : 1);
+}
+
+function getUpgradeCost(upgrade) {
+  const owned = state.owned[upgrade.id] || 0;
+  return Math.floor(upgrade.baseCost * Math.pow(1.6, owned));
+}
+
+function formatNumber(value) {
+  if (value >= 1e12) return (value / 1e12).toFixed(2).replace(/\.00$/, "") + "T";
+  if (value >= 1e9) return (value / 1e9).toFixed(2).replace(/\.00$/, "") + "B";
+  if (value >= 1e6) return (value / 1e6).toFixed(2).replace(/\.00$/, "") + "M";
+  if (value >= 1e4) return (value / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
+  return Math.floor(value).toLocaleString();
+}
+
+function say(message) {
+  lastMessage = message;
+  document.getElementById("message").textContent = message;
+}
+
+function showTab(panelId, button) {
+  document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.remove("active"));
+  document.querySelectorAll(".tab-button").forEach(tab => tab.classList.remove("active"));
+  document.getElementById(panelId).classList.add("active");
+  button.classList.add("active");
+  if (panelId === "achievementsPanel") renderAchievements();
+  if (panelId === "statsPanel") renderStats();
+  if (panelId === "leaderboardPanel") {
+    prepareScoreSubmission();
+    loadLeaderboard();
+  }
+}
+
+
+function prepareScoreSubmission() {
+  const score = Math.max(0, Math.floor(Number(state.lifetimePoints) || 0));
+  const title = "SCORE: " + score + " | Mr Ennis Clicker";
+  const body = "Score submitted from Mr Ennis Clicker 2.0.\\n\\nLifetime Ennis Points: " + score +
+    "\\n\\nThe GitHub account that opens this issue will be shown as the player.";
+  const link = document.getElementById("submitScoreLink");
+  link.href = GITHUB_ISSUE_URL + "?title=" + encodeURIComponent(title) +
+    "&body=" + encodeURIComponent(body);
+  link.textContent = "🚀 Submit my " + formatNumber(score) + " point score on GitHub";
+}
+
+async function loadLeaderboard() {
+  const status = document.getElementById("leaderboardStatus");
+  const list = document.getElementById("leaderboardList");
+  if (!status || !list) return;
+
+  status.textContent = "Loading global scores...";
+  list.replaceChildren();
+
+  try {
+    const response = await fetch(LEADERBOARD_URL + "?t=" + Date.now(), { cache: "no-store" });
+    if (!response.ok) throw new Error("Leaderboard could not be reached.");
+    const data = await response.json();
+    const scores = Array.isArray(data.scores) ? data.scores : [];
+
+    scores.sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
+
+    if (!scores.length) {
+      status.textContent = "No scores yet. Be the first to submit!";
+      return;
+    }
+
+    status.textContent = "Showing the top " + Math.min(scores.length, 10) + " players.";
+    scores.slice(0, 10).forEach((entry, index) => {
+      const row = document.createElement("div");
+      row.className = "upgrade";
+      row.style.display = "flex";
+      row.style.alignItems = "center";
+      row.style.justifyContent = "space-between";
+      row.style.gap = "12px";
+
+      const player = document.createElement("span");
+      player.className = "upgrade-name";
+      player.textContent = (index + 1) + ". " + String(entry.username || "Unknown player");
+
+      const points = document.createElement("strong");
+      points.style.color = "var(--gold)";
+      points.textContent = formatNumber(Number(entry.score) || 0);
+
+      row.append(player, points);
+      list.appendChild(row);
+    });
+  } catch (error) {
+    status.textContent = "Couldn't load the leaderboard. Check your internet connection and try Refresh.";
+  }
+}
+
+function addPoints(amount) {
+  const safeAmount = Math.max(0, amount);
+  state.points += safeAmount;
+  state.lifetimePoints += safeAmount;
+}
+
+function spawnFloat(text, event) {
+  const layer = document.getElementById("floatLayer");
+  const button = document.getElementById("clicker");
+  const rect = button.getBoundingClientRect();
+  const x = event && Number.isFinite(event.clientX) ? event.clientX - rect.left : rect.width / 2;
+  const y = event && Number.isFinite(event.clientY) ? event.clientY - rect.top : rect.height / 2;
+  const floater = document.createElement("span");
+  floater.className = "float-points";
+  floater.textContent = text;
+  floater.style.left = Math.max(24, Math.min(rect.width - 24, x)) + "px";
+  floater.style.top = Math.max(35, Math.min(rect.height - 20, y)) + "px";
+  layer.appendChild(floater);
+  setTimeout(() => floater.remove(), 950);
+}
+
+function clickEnnis(event) {
+  state.totalClicks += 1;
+  let earned = getEffectiveClickPower();
+  let label = "+" + formatNumber(earned);
+
+  if (goldenActive) {
+    earned += GOLDEN_BONUS * getPrestigeMultiplier() * (doubleActive ? 2 : 1);
+    goldenActive = false;
+    state.goldenClicks += 1;
+    clearTimeout(goldenTimeout);
+    document.getElementById("clicker").classList.remove("golden");
+    document.getElementById("goldenLabel").classList.remove("show");
+    document.getElementById("clickHint").textContent = "GOLDEN MR ENNIS CAUGHT! +50 BONUS!";
+    label = "+" + formatNumber(earned) + " ✨";
+    say("GOLDEN MR ENNIS CAUGHT! +" + formatNumber(earned) + " bonus points!");
+    scheduleGolden();
+  } else {
+    document.getElementById("clickHint").textContent = "CLICK MR ENNIS!";
+  }
+
+  addPoints(earned);
+  spawnFloat(label, event);
+  update();
+}
+
+function buyUpgrade(id) {
+  const upgrade = upgradeCatalog.find(u => u.id === id);
+  if (!upgrade) return;
+  if (upgrade.secret && state.lifetimePoints < upgrade.unlockAt) {
+    say("That upgrade is still a secret!");
+    return;
+  }
+  const cost = getUpgradeCost(upgrade);
+  if (state.points < cost) {
+    say("Not enough Ennis Points! 😂");
+    return;
+  }
+  state.points -= cost;
+  state.owned[id] = (state.owned[id] || 0) + 1;
+  say("PURCHASED: " + upgrade.name);
+  update();
+}
+
+function renderShop() {
+  const shop = document.getElementById("shop");
+  shop.replaceChildren();
+
+  upgradeCatalog.forEach(upgrade => {
+    const unlocked = !upgrade.secret || state.lifetimePoints >= upgrade.unlockAt;
+    if (!unlocked) return;
+
+    const cost = getUpgradeCost(upgrade);
+    const card = document.createElement("article");
+    card.className = "upgrade";
+
+    const top = document.createElement("div");
+    top.className = "upgrade-top";
+    const titleWrap = document.createElement("div");
+
+    const name = document.createElement("div");
+    name.className = "upgrade-name";
+    name.textContent = upgrade.name;
+
+    const desc = document.createElement("div");
+    desc.className = "upgrade-desc";
+    desc.textContent = upgrade.desc;
+
+    titleWrap.append(name, desc);
+    top.append(titleWrap);
+
+    const stats = document.createElement("div");
+    stats.className = "upgrade-stats";
+    stats.textContent = " +" + formatNumber(upgrade.cps) +
+      " points/sec  •  +" + formatNumber(upgrade.clickPower || 0) +
+      " click power  •  Owned: " + (state.owned[upgrade.id] || 0);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "buy-button";
+    button.disabled = state.points < cost;
+    button.textContent = "BUY — " + formatNumber(cost) + " Ennis Points";
+    button.addEventListener("click", () => buyUpgrade(upgrade.id));
+
+    card.append(top, stats, button);
+    shop.appendChild(card);
+  });
+
+  const notice = document.getElementById("secretUnlockNotice");
+  const nextSecret = upgradeCatalog.find(u => u.secret && state.lifetimePoints < u.unlockAt);
+  if (nextSecret) {
+    notice.className = "locked-secret";
+    notice.style.marginTop = "12px";
+    notice.textContent = "🔒 SECRET UPGRADE: ??? — Discover at " +
+      formatNumber(nextSecret.unlockAt) + " lifetime Ennis Points.";
+  } else {
+    notice.textContent = "🎉 All secret classroom upgrades have been discovered!";
+    notice.className = "locked-secret";
+    notice.style.marginTop = "12px";
+  }
+}
+
+function checkAchievements() {
+  let newlyUnlocked = [];
+  achievements.forEach(achievement => {
+    if (!state.unlockedAchievements.includes(achievement.id) && achievement.test(state)) {
+      state.unlockedAchievements.push(achievement.id);
+      newlyUnlocked.push(achievement.name);
+    }
+  });
+  if (newlyUnlocked.length) {
+    say("🏅 ACHIEVEMENT UNLOCKED: " + newlyUnlocked.join(", "));
+  }
+}
+
+function renderAchievements() {
+  const grid = document.getElementById("achievementGrid");
+  grid.replaceChildren();
+  const unlocked = state.unlockedAchievements;
+  document.getElementById("achievementCount").textContent =
+    unlocked.length + " / " + achievements.length + " achievements unlocked";
+
+  achievements.forEach(achievement => {
+    const isUnlocked = unlocked.includes(achievement.id);
+    const card = document.createElement("div");
+    card.className = "achievement" + (isUnlocked ? " unlocked" : "");
+
+    const icon = document.createElement("div");
+    icon.className = "achievement-icon";
+    icon.textContent = isUnlocked ? achievement.icon : "🔒";
+
+    const name = document.createElement("div");
+    name.className = "achievement-name";
+    name.textContent = isUnlocked ? achievement.name : "Locked achievement";
+
+    const desc = document.createElement("div");
+    desc.className = "achievement-desc";
+    desc.textContent = achievement.desc;
+
+    const status = document.createElement("div");
+    status.className = "achievement-status";
+    status.textContent = isUnlocked ? "UNLOCKED ✓" : "NOT YET";
+
+    card.append(icon, name, desc, status);
+    grid.appendChild(card);
+  });
+}
+
+function formatTime(totalSeconds) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+  if (hours > 0) return hours + "h " + minutes + "m";
+  if (minutes > 0) return minutes + "m " + seconds + "s";
+  return seconds + "s";
+}
+
+function renderStats() {
+  const stats = [
+    ["Total clicks", formatNumber(state.totalClicks)],
+    ["Lifetime points earned", formatNumber(state.lifetimePoints)],
+    ["Current points", formatNumber(state.points)],
+    ["Points per second", formatNumber(getEffectiveCPS())],
+    ["Points per click", formatNumber(getEffectiveClickPower())],
+    ["Playtime", formatTime(state.playtimeSeconds)],
+    ["Upgrades owned", formatNumber(totalOwned())],
+    ["Golden Mr Ennis catches", formatNumber(state.goldenClicks)],
+    ["Double-points events", formatNumber(state.eventsSeen)],
+    ["Rebirths", formatNumber(state.rebirths)],
+    ["Achievements", state.unlockedAchievements.length + " / " + achievements.length]
+  ];
+
+  const grid = document.getElementById("statsGrid");
+  grid.replaceChildren();
+  stats.forEach(([label, value]) => {
+    const card = document.createElement("div");
+    card.className = "stat";
+    const title = document.createElement("div");
+    title.className = "stat-label";
+    title.textContent = label;
+    const number = document.createElement("div");
+    number.className = "stat-value";
+    number.textContent = value;
+    card.append(title, number);
+    grid.appendChild(card);
+  });
+}
+
+function renderRebirth() {
+  const button = document.getElementById("rebirthButton");
+  const multiplier = getPrestigeMultiplier();
+  document.getElementById("rebirthInfo").textContent =
+    "Reset your points and upgrades at " + formatNumber(REBIRTH_COST) +
+    " points. Each rebirth adds +25% permanently. Current multiplier: x" +
+    multiplier.toFixed(2) + ".";
+  button.disabled = state.points < REBIRTH_COST;
+  button.textContent = state.points >= REBIRTH_COST
+    ? "REBIRTH NOW — RESET FOR x" + (multiplier + 0.25).toFixed(2)
+    : "REBIRTH — NEED " + formatNumber(REBIRTH_COST - state.points) + " MORE POINTS";
+}
+
+function rebirth() {
+  if (state.points < REBIRTH_COST) {
+    say("You need " + formatNumber(REBIRTH_COST) + " Ennis Points to rebirth.");
+    return;
+  }
+  const nextMultiplier = getPrestigeMultiplier() + 0.25;
+  if (!confirm("Rebirth now? Your current points and upgrades will reset, but your lifetime stats and achievements stay. Your multiplier becomes x" + nextMultiplier.toFixed(2) + ".")) {
+    return;
+  }
+
+  state.rebirths += 1;
+  state.points = 0;
+  upgradeCatalog.forEach(u => state.owned[u.id] = 0);
+  say("🌟 REBIRTH COMPLETE! Permanent multiplier is now x" + getPrestigeMultiplier().toFixed(2) + "!");
+  update();
+}
+
+function activateDoubleEvent() {
+  doubleActive = true;
+  doubleSeconds = 30;
+  state.eventsSeen += 1;
+  const banner = document.getElementById("eventBanner");
+  banner.classList.add("show");
+  document.getElementById("eventCountdown").textContent = "30 seconds remaining";
+  say("⚡ CLASSROOM CHAOS! DOUBLE POINTS FOR 30 SECONDS!");
+  if (eventTick) clearInterval(eventTick);
+  eventTick = setInterval(() => {
+    doubleSeconds -= 1;
+    if (doubleSeconds <= 0) {
+      doubleActive = false;
+      clearInterval(eventTick);
+      eventTick = null;
+      banner.classList.remove("show");
+      say("The double-points event has ended. Back to the lesson!");
+    } else {
+      document.getElementById("eventCountdown").textContent =
+        doubleSeconds + " seconds remaining";
+    }
+    update();
+  }, 1000);
+  update();
+  scheduleDoubleEvent();
+}
+
+function scheduleDoubleEvent() {
+  if (eventTimeout) clearTimeout(eventTimeout);
+  const delay = 90000 + Math.random() * 90000;
+  eventTimeout = setTimeout(() => {
+    if (!doubleActive) activateDoubleEvent();
+    else scheduleDoubleEvent();
+  }, delay);
+}
+
+function activateGolden() {
+  if (goldenActive) return;
+  goldenActive = true;
+  document.getElementById("clicker").classList.add("golden");
+  document.getElementById("goldenLabel").classList.add("show");
+  document.getElementById("clickHint").textContent = "QUICK! CLICK GOLDEN MR ENNIS!";
+  say("✨ GOLDEN MR ENNIS HAS APPEARED! CLICK HIM FOR +50 BONUS POINTS!");
+  goldenTimeout = setTimeout(() => {
+    goldenActive = false;
+    document.getElementById("clicker").classList.remove("golden");
+    document.getElementById("goldenLabel").classList.remove("show");
+    document.getElementById("clickHint").textContent = "CLICK MR ENNIS!";
+    say("Golden Mr Ennis disappeared. Keep watching!");
+    scheduleGolden();
+  }, 12000);
+}
+
+function scheduleGolden() {
+  if (goldenTimeout) clearTimeout(goldenTimeout);
+  const delay = 25000 + Math.random() * 35000;
+  goldenTimeout = setTimeout(activateGolden, delay);
+}
+
+function update() {
+  document.getElementById("count").textContent =
+    formatNumber(state.points) + " Ennis Points";
+  document.getElementById("cps").textContent =
+    formatNumber(getEffectiveCPS()) + " points per second" +
+    (doubleActive ? " (DOUBLE!)" : "");
+  document.getElementById("clickPower").textContent =
+    formatNumber(getEffectiveClickPower()) + " points per click" +
+    (doubleActive ? " (DOUBLE!)" : "");
+  document.getElementById("prestigeLine").textContent =
+    "Permanent multiplier: x" + getPrestigeMultiplier().toFixed(2) +
+    "  •  Rebirths: " + state.rebirths;
+
+  renderShop();
+  renderRebirth();
+  checkAchievements();
+
+  if (document.getElementById("achievementsPanel").classList.contains("active")) {
+    renderAchievements();
+  }
+  if (document.getElementById("statsPanel").classList.contains("active")) {
+    renderStats();
+  }
+  saveGame();
+}
+
+function resetGame() {
+  if (!confirm("Reset ALL Mr Ennis Clicker progress, including achievements and rebirths?")) return;
+  if (goldenTimeout) clearTimeout(goldenTimeout);
+  if (eventTimeout) clearTimeout(eventTimeout);
+  if (eventTick) clearInterval(eventTick);
+  state = freshState();
+  goldenActive = false;
+  doubleActive = false;
+  doubleSeconds = 0;
+  document.getElementById("clicker").classList.remove("golden");
+  document.getElementById("goldenLabel").classList.remove("show");
+  document.getElementById("eventBanner").classList.remove("show");
+  say("The classroom has been completely reset. New term, new start!");
+  update();
+  scheduleGolden();
+  scheduleDoubleEvent();
+}
+
+// One-second classroom tick: passive earnings, playtime and autosave.
+setInterval(() => {
+  const income = getEffectiveCPS();
+  if (income > 0) addPoints(income);
+  state.playtimeSeconds += 1;
+  update();
+}, 1000);
+
+update();
+scheduleGolden();
+scheduleDoubleEvent();
+</script>
+</body>
+</html>
