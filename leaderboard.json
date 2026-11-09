@@ -1,3 +1,9 @@
 {
-  "scores": []
+  "scores": [
+    {
+      "username": "robertojohnstoneo1",
+      "score": 100,
+      "issue": 1
+    }
+  ]
 }
