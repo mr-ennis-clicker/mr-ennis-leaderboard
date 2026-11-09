@@ -904,4 +904,209 @@ scheduleGolden();
 scheduleDoubleEvent();
 </script>
 </body>
-</html>
+<style>
+/* Classroom UI polish — keeps the original purple and gold theme. */
+.game { max-width: 900px; border-radius: 28px; }
+.score-card { border: 1px solid #635985; box-shadow: inset 0 1px 0 #ffffff12, 0 8px 22px #17132c55; }
+#count { letter-spacing: -.6px; text-shadow: 0 2px 14px #ffd76b33; }
+.tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tab-button { transition: transform .16s ease, background .16s ease, box-shadow .16s ease; }
+.tab-button:hover { transform: translateY(-2px); box-shadow: 0 5px 14px #17132c66; }
+.upgrade { box-shadow: 0 5px 14px #17132c33; transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
+.upgrade:hover { transform: translateY(-2px); border-color: #b6a6e8; box-shadow: 0 9px 20px #17132c55; }
+.buy-button, .rebirth-button, .command-button { transition: transform .12s ease, filter .12s ease, box-shadow .12s ease; }
+.buy-button:hover:not(:disabled), .rebirth-button:hover:not(:disabled), .command-button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.07); box-shadow: 0 5px 13px #17132c66; }
+button:focus-visible, a:focus-visible { outline: 3px solid #fff2a0; outline-offset: 3px; }
+.command-section { margin: 18px 0 16px; padding: 16px; background: linear-gradient(145deg, #453b6b, #2b2646); border: 1px solid #716990; border-radius: 18px; box-shadow: 0 8px 20px #17132c44; }
+.command-heading { margin: 0 0 5px; text-align: center; color: var(--gold); font-size: 19px; }
+.command-intro { color: var(--muted); text-align: center; font-size: 12px; margin: 0 0 13px; }
+.command-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.command-card { min-width: 0; padding: 12px; border-radius: 13px; background: #25213f; border: 1px solid #665c88; text-align: center; }
+.command-name { color: var(--gold); font-size: 14px; line-height: 1.25; font-weight: 900; }
+.command-desc { min-height: 34px; color: var(--muted); font-size: 11px; margin: 6px 0 9px; }
+.command-button { width: 100%; padding: 10px 8px; border: 0; border-radius: 9px; background: var(--gold); color: #29213b; font-size: 12px; font-weight: 900; cursor: pointer; }
+.command-button:disabled { opacity: .48; cursor: not-allowed; }
+.addon-badge { display: inline-block; padding: 3px 7px; margin-left: 5px; border-radius: 99px; color: #30213f; background: #d6b0ff; font-size: 10px; font-weight: 900; vertical-align: 2px; }
+@media (max-width: 620px) {
+  .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .command-grid { grid-template-columns: 1fr; }
+  .command-desc { min-height: 0; }
+  .command-card { display: grid; grid-template-columns: 1fr; }
+  .game { padding: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-button, .upgrade, .buy-button, .rebirth-button, .command-button { transition: none; }
+}
+</style>
+<script>
+(function addMrEnnisClassroomExpansion() {
+  "use strict";
+
+  // Add-ons are appended to the existing catalog. None of the original items are changed.
+  const extraUpgrades = [
+    { id: "berryvisit", name: "Mr Berry's Classroom Visit. 🍎", desc: "A special visit that gets the whole class working.", baseCost: 25000, cps: 200, clickPower: 25, addon: true },
+    { id: "seatshuffle", name: "Move Seats Right Now! 🪑", desc: "A reshuffle that somehow makes everyone more productive.", baseCost: 80000, cps: 600, clickPower: 50, addon: true },
+    { id: "youngladenergy", name: "Young Lad Energy. ⚡", desc: "Unmatched classroom enthusiasm.", baseCost: 250000, cps: 1800, clickPower: 100, addon: true },
+    { id: "supplycupboard", name: "The Supply Cupboard. 🔑", desc: "Everything the classroom could possibly need.", baseCost: 800000, cps: 7500, clickPower: 250, addon: true },
+    { id: "staffroomkettle", name: "The Staffroom Kettle. ☕", desc: "A well-earned cup of tea powers the school.", baseCost: 2500000, cps: 22000, clickPower: 600, addon: true },
+    { id: "deputyclipboard", name: "The Deputy Head's Clipboard. 📋", desc: "Every task is organised. Every point is counted.", baseCost: 7000000, cps: 65000, clickPower: 1500, addon: true },
+    { id: "schoolminibus", name: "The School Minibus. 🚌", desc: "Taking classroom productivity on tour.", baseCost: 20000000, cps: 190000, clickPower: 3500, addon: true },
+    { id: "bellsystem", name: "The New Bell System. 🔔", desc: "The bell rings; the points roll in.", baseCost: 60000000, cps: 550000, clickPower: 9000, addon: true },
+    { id: "megaclassroom", name: "The Ennis Mega Classroom. 🏫", desc: "A secret, enormous classroom expansion.", baseCost: 180000000, cps: 1600000, clickPower: 25000, secret: true, unlockAt: 50000000, addon: true },
+    { id: "goldenwhiteboard", name: "The Golden Whiteboard. ✨", desc: "The ultimate piece of classroom equipment.", baseCost: 600000000, cps: 5000000, clickPower: 70000, secret: true, unlockAt: 200000000, addon: true }
+  ];
+  extraUpgrades.forEach(item => {
+    if (!upgradeCatalog.some(existing => existing.id === item.id)) upgradeCatalog.push(item);
+  });
+
+  // Make sure older saves get zero-count entries for each newly added purchase.
+  extraUpgrades.forEach(item => {
+    if (!Number.isFinite(Number(state.owned[item.id]))) state.owned[item.id] = 0;
+  });
+
+  // Preserve the add-on counters when an existing save is loaded.
+  try {
+    const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || "{}");
+    state.berryVisits = Math.max(0, Math.floor(Number(saved.berryVisits) || 0));
+    state.seatMoves = Math.max(0, Math.floor(Number(saved.seatMoves) || 0));
+    state.youngLadMoments = Math.max(0, Math.floor(Number(saved.youngLadMoments) || 0));
+  } catch (_) {
+    state.berryVisits = state.seatMoves = state.youngLadMoments = 0;
+  }
+
+  const extraAchievements = [
+    { id: "goMrBerry", icon: "🍎", name: "Go to Mr Berry", desc: "Take a trip to Mr Berry's classroom.", test: s => (s.berryVisits || 0) >= 1 },
+    { id: "moveSeatsNow", icon: "🪑", name: "Move Seats Right Now", desc: "Use the classroom seat shuffle.", test: s => (s.seatMoves || 0) >= 1 },
+    { id: "youngLad", icon: "⚡", name: "Young Lad", desc: "Activate Young Lad Energy.", test: s => (s.youngLadMoments || 0) >= 1 },
+    { id: "millionPoints", icon: "💎", name: "Million Point Club", desc: "Earn 1 million lifetime Ennis Points.", test: s => s.lifetimePoints >= 1000000 },
+    { id: "tenMillionPoints", icon: "🌠", name: "Ten Million Club", desc: "Earn 10 million lifetime Ennis Points.", test: s => s.lifetimePoints >= 10000000 },
+    { id: "hundredMillionPoints", icon: "👑", name: "School Legend", desc: "Earn 100 million lifetime Ennis Points.", test: s => s.lifetimePoints >= 100000000 },
+    { id: "tenThousandClicks", icon: "🖱️", name: "Finger of Steel", desc: "Click Mr Ennis 10,000 times.", test: s => s.totalClicks >= 10000 },
+    { id: "fiftyThousandClicks", icon: "🔥", name: "Clicking Legend", desc: "Click Mr Ennis 50,000 times.", test: s => s.totalClicks >= 50000 },
+    { id: "twentyFiveUpgrades", icon: "🛍️", name: "Regular Customer", desc: "Buy 25 upgrades in total.", test: s => totalOwned(s) >= 25 },
+    { id: "fiftyUpgrades", icon: "🏬", name: "Own the Shop", desc: "Buy 50 upgrades in total.", test: s => totalOwned(s) >= 50 },
+    { id: "tenGoldenCatches", icon: "🌟", name: "Golden Touch", desc: "Catch Golden Mr Ennis 10 times.", test: s => s.goldenClicks >= 10 },
+    { id: "tenDoubleEvents", icon: "⚡", name: "Chaos Coordinator", desc: "Experience 10 double-points events.", test: s => s.eventsSeen >= 10 },
+    { id: "tenRebirths", icon: "♻️", name: "Never Give Up", desc: "Complete 10 rebirths.", test: s => s.rebirths >= 10 },
+    { id: "berryTen", icon: "🍏", name: "Berry Regular", desc: "Visit Mr Berry 10 times.", test: s => (s.berryVisits || 0) >= 10 },
+    { id: "seatFive", icon: "🪑", name: "Seat Shuffle Expert", desc: "Move seats 5 times.", test: s => (s.seatMoves || 0) >= 5 },
+    { id: "youngLadFive", icon: "💥", name: "Young Lad Supreme", desc: "Activate Young Lad Energy 5 times.", test: s => (s.youngLadMoments || 0) >= 5 },
+    { id: "addonUpgrade", icon: "🧰", name: "New Equipment", desc: "Own at least one of the new shop upgrades.", test: s => extraUpgrades.some(u => (s.owned[u.id] || 0) >= 1) },
+    { id: "allAddonUpgrades", icon: "🏫", name: "School Renovation", desc: "Own every new shop upgrade, including the secrets.", test: s => extraUpgrades.every(u => (s.owned[u.id] || 0) >= 1) }
+  ];
+  extraAchievements.forEach(item => {
+    if (!achievements.some(existing => existing.id === item.id)) achievements.push(item);
+  });
+
+  // Seat shuffle is a temporary x2 boost layered over all existing multipliers/events.
+  let seatBoostActive = false;
+  let seatBoostTimer = null;
+  const originalGetCPS = getEffectiveCPS;
+  const originalGetClickPower = getEffectiveClickPower;
+  getEffectiveCPS = function () { return originalGetCPS() * (seatBoostActive ? 2 : 1); };
+  getEffectiveClickPower = function () { return originalGetClickPower() * (seatBoostActive ? 2 : 1); };
+
+  const shopPanel = document.getElementById("shopPanel");
+  const shop = document.getElementById("shop");
+  const commandSection = document.createElement("section");
+  commandSection.className = "command-section";
+  commandSection.innerHTML =
+    '<h3 class="command-heading">🎒 CLASSROOM MOMENTS</h3>' +
+    '<p class="command-intro">Special classroom actions — complete them to unlock new achievements.</p>' +
+    '<div class="command-grid">' +
+      '<article class="command-card"><div class="command-name">🍎 Go to Mr Berry</div><div class="command-desc">Visit Mr Berry and bring back 500 points, boosted by your rebirth multiplier.</div><button class="command-button" id="berryButton" type="button">VISIT MR BERRY</button></article>' +
+      '<article class="command-card"><div class="command-name">🪑 Move Seats Right Now</div><div class="command-desc">Get a x2 points boost for 25 seconds.</div><button class="command-button" id="seatsButton" type="button">MOVE SEATS</button></article>' +
+      '<article class="command-card"><div class="command-name">⚡ Young Lad</div><div class="command-desc">A burst of energy gives you 250 points, boosted by rebirths.</div><button class="command-button" id="youngLadButton" type="button">YOUNG LAD!</button></article>' +
+    '</div>';
+  shopPanel.insertBefore(commandSection, shop);
+
+  function setCooldown(button, seconds, readyText) {
+    button.disabled = true;
+    let remaining = seconds;
+    button.textContent = remaining + "s — WAIT";
+    const timer = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(timer);
+        button.disabled = false;
+        button.textContent = readyText;
+      } else {
+        button.textContent = remaining + "s — WAIT";
+      }
+    }, 1000);
+  }
+
+  document.getElementById("berryButton").addEventListener("click", function () {
+    state.berryVisits = (state.berryVisits || 0) + 1;
+    const reward = 500 * getPrestigeMultiplier();
+    addPoints(reward);
+    say("🍎 You went to Mr Berry! You brought back " + formatNumber(reward) + " Ennis Points.");
+    setCooldown(this, 15, "VISIT MR BERRY");
+    update();
+  });
+
+  document.getElementById("seatsButton").addEventListener("click", function () {
+    if (seatBoostActive) return;
+    state.seatMoves = (state.seatMoves || 0) + 1;
+    seatBoostActive = true;
+    if (seatBoostTimer) clearTimeout(seatBoostTimer);
+    say("🪑 MOVE SEATS RIGHT NOW! Double points for 25 seconds!");
+    this.disabled = true;
+    this.textContent = "SEATS MOVED!";
+    seatBoostTimer = setTimeout(() => {
+      seatBoostActive = false;
+      this.disabled = false;
+      this.textContent = "MOVE SEATS";
+      say("The seats are back in place. Carry on with the lesson!");
+      update();
+    }, 25000);
+    update();
+  });
+
+  document.getElementById("youngLadButton").addEventListener("click", function () {
+    state.youngLadMoments = (state.youngLadMoments || 0) + 1;
+    const reward = 250 * getPrestigeMultiplier();
+    addPoints(reward);
+    say("⚡ YOUNG LAD! That's " + formatNumber(reward) + " bonus Ennis Points!");
+    setCooldown(this, 15, "YOUNG LAD!");
+    update();
+  });
+
+  // Add a subtle marker to the new purchases while leaving every original card alone.
+  const originalRenderShop = renderShop;
+  renderShop = function () {
+    originalRenderShop();
+    document.querySelectorAll("#shop .upgrade").forEach(card => {
+      const title = card.querySelector(".upgrade-name");
+      if (title && extraUpgrades.some(u => title.textContent === u.name) && !title.querySelector(".addon-badge")) {
+        const badge = document.createElement("span");
+        badge.className = "addon-badge";
+        badge.textContent = "NEW";
+        title.appendChild(badge);
+      }
+    });
+  };
+
+  // Re-run the normal renderer with the expanded catalogs and persist the new counters.
+  update();
+  if (typeof prepareScoreSubmission === "function") prepareScoreSubmission();
+  // Restart the existing random bonus schedules safely (the schedulers clear any previous timer).
+  if (typeof scheduleGolden === "function") scheduleGolden();
+  if (typeof scheduleDoubleEvent === "function") scheduleDoubleEvent();
+
+  // Some pasted copies accidentally put the original one-second tick inside a // comment.
+  // Detect that case and only supply a fallback tick when the original tick is not running.
+  const playtimeAtBoot = state.playtimeSeconds;
+  setTimeout(() => {
+    if (state.playtimeSeconds === playtimeAtBoot) {
+      setInterval(() => {
+        const income = getEffectiveCPS();
+        if (income > 0) addPoints(income);
+        state.playtimeSeconds += 1;
+        update();
+      }, 1000);
+    }
+  }, 1300);
+})();
+</script>
+<!-- End Mr Ennis Clicker add-on. Keep the original </body> and </html> tags below this block. -->
