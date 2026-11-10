@@ -2,6 +2,11 @@
   "scores": [
     {
       "username": "KawaiiKerr",
+      "score": 1006451767573,
+      "issue": 23
+    },
+    {
+      "username": "KawaiiKerr",
       "score": 1004183777562,
       "issue": 19
     },
@@ -44,11 +49,6 @@
       "username": "robertojohnstoneo1",
       "score": 11575038634,
       "issue": 5
-    },
-    {
-      "username": "robertojohnstoneo1",
-      "score": 1370038273,
-      "issue": 4
     }
   ]
 }
